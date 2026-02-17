@@ -1,18 +1,20 @@
 name: Atualizador Diario
 on:
   schedule:
-    - cron: '0 0 * * *' # Isso faz o robô trabalhar toda meia-noite
-  workflow_dispatch: # Permite que você rode manualmente se quiser
+    - cron: '0 0 * * *'
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions: # Garante que o robô tenha permissão aqui também
+      contents: write
     steps:
       - name: Baixar arquivos do projeto
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4 # Versão mais atual
 
       - name: Configurar o Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: '3.9'
 
@@ -23,9 +25,11 @@ jobs:
         run: python gerar_lista.py
 
       - name: Salvar e publicar a nova lista
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          git config --global user.name "Robo Atualizador"
-          git config --global user.email "bot@github.com"
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add minha_lista.txt
-          git commit -m "Lista atualizada em: $(date)" || exit 0
-          git push
+          # O comando abaixo evita o erro se não houver mudanças na lista
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Update list $(date)" && git push)
