@@ -5,7 +5,7 @@ Projeto de bloqueio de anúncios e rastreadores atualizado automaticamente a cad
 
 ## 🚀 Como usar
 Para usar este filtro no seu bloqueador (AdGuard Home, Pi-hole ou NextDNS), utilize o link abaixo:
-`COLE_AQUI_O_LINK_RAW_QUE_VOCE_COPIOU_NO_PASSO_1`
+`https://raw.githubusercontent.com/jleoandrade/cloud-dns-blocker/refs/heads/main/minha_lista.txt`
 
 ## 📊 O que este projeto faz?
 - Coleta domínios de fontes confiáveis.
