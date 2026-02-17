@@ -1,0 +1,31 @@
+name: Atualizador Diario
+on:
+  schedule:
+    - cron: '0 0 * * *' # Isso faz o robô trabalhar toda meia-noite
+  workflow_dispatch: # Permite que você rode manualmente se quiser
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Baixar arquivos do projeto
+        uses: actions/checkout@v3
+
+      - name: Configurar o Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Instalar bibliotecas
+        run: pip install requests
+
+      - name: Executar o robô
+        run: python gerar_lista.py
+
+      - name: Salvar e publicar a nova lista
+        run: |
+          git config --global user.name "Robo Atualizador"
+          git config --global user.email "bot@github.com"
+          git add minha_lista.txt
+          git commit -m "Lista atualizada em: $(date)" || exit 0
+          git push
