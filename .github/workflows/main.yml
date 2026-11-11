@@ -11,12 +11,12 @@ jobs:
       contents: write
     steps:
       - name: Baixar arquivos do projeto
-        uses: actions/checkout@v4 # Versão mais atual
+        uses: actions/checkout@v5 # v5 roda em Node.js 24
 
       - name: Configurar o Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6 # v6 roda em Node.js 24
         with:
-          python-version: '3.9'
+          python-version: '3.13' # 3.9 não existe para Ubuntu 26.04
 
       - name: Instalar bibliotecas
         run: pip install requests
