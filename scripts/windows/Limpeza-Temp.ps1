@@ -4,7 +4,7 @@
 
 .DESCRIPTION
     Pensado para ser copiado/enviado para a maquina e executado nela (manualmente,
-    via SCCM/Intune/RMM, GPO ou Invoke-Command -FilePath). Tudo e feito sobre a
+    via Intune/RMM, GPO ou Invoke-Command -FilePath). Tudo e feito sobre a
     propria maquina onde o script roda.
 
     Etapas:
@@ -12,7 +12,7 @@
       2. Logs do Windows Update / CBS
       3. Varredura de *.tmp em pastas conhecidas
       4. Fila de impressao (spooler)
-      5. Cache e logs do cliente SCCM + Windows Error Reporting
+      5. Windows Error Reporting
       6. Reset do Windows Update + DISM StartComponentCleanup
       7. Verificacao de saude do Windows Update
 
@@ -23,8 +23,6 @@
     Nao limpa C:\Windows\Prefetch.
 .PARAMETER SkipPrintQueue
     Nao para o spooler nem limpa a fila de impressao.
-.PARAMETER SkipSCCM
-    Nao mexe no cache/logs do cliente SCCM.
 .PARAMETER SkipWindowsUpdateReset
     Nao para os servicos nem apaga SoftwareDistribution/catroot2.
 .PARAMETER SkipDism
@@ -47,7 +45,6 @@
 param(
     [switch]$SkipPrefetch,
     [switch]$SkipPrintQueue,
-    [switch]$SkipSCCM,
     [switch]$SkipWindowsUpdateReset,
     [switch]$SkipDism,
     [string]$LogPath = "$env:ProgramData\LimpezaTemp"
@@ -57,7 +54,7 @@ param(
 # 0. Pre-requisitos
 # ---------------------------------------------------------------------------
 
-# Se iniciado por um host 32 bits em Windows 64 bits (ex.: pacote SCCM legado),
+# Se iniciado por um host 32 bits em Windows 64 bits,
 # System32 seria redirecionado para SysWOW64. Relanca em PowerShell 64 bits.
 if ([Environment]::Is64BitOperatingSystem -and -not [Environment]::Is64BitProcess) {
     $ps64 = "$env:windir\sysnative\WindowsPowerShell\v1.0\powershell.exe"
@@ -191,7 +188,7 @@ try {
     # 3. Varredura de *.tmp (o que sobrou por estar em uso, ou em outras pastas)
     # -----------------------------------------------------------------------
     Write-Step "3. Varredura de *.tmp"
-    $paths = @("$env:windir\Temp", "$env:ProgramData\Temp", "$env:windir\CCM\Temp", "$env:windir\ccmcache") + $userTemps
+    $paths = @("$env:windir\Temp", "$env:ProgramData\Temp") + $userTemps
     foreach ($p in $paths) {
         if (Test-Path -LiteralPath $p) {
             Get-ChildItem -LiteralPath $p -Recurse -Force -File -Filter *.tmp -ErrorAction SilentlyContinue |
@@ -210,31 +207,9 @@ try {
     }
 
     # -----------------------------------------------------------------------
-    # 5. Cache/logs SCCM e Windows Error Reporting
+    # 5. Windows Error Reporting
     # -----------------------------------------------------------------------
-    if (-not $SkipSCCM -and (Test-Path "$env:windir\CCM")) {
-        Write-Step "5a. Cliente SCCM"
-        # Forma suportada: limpar o cache pelo proprio cliente (mantem o banco do cache consistente)
-        $cleanedByClient = $false
-        try {
-            $ui    = New-Object -ComObject UIResource.UIResourceMgr
-            $cache = $ui.GetCacheInfo()
-            $items = @($cache.GetCacheElements())
-            Write-Info "Removendo $($items.Count) item(ns) do cache via cliente SCCM"
-            foreach ($i in $items) { $cache.DeleteCacheElement($i.CacheElementID) }
-            $cleanedByClient = $true
-        }
-        catch { Write-Warn "Nao foi possivel limpar via cliente SCCM ($($_.Exception.Message)); apagando pastas." }
-
-        if (-not $cleanedByClient) { Clear-Folder "$env:windir\ccmcache" }
-        Clear-Folder "$env:windir\CCM\Temp"
-        Fast-Delete  "$env:windir\CCM\Cache"            # normalmente nao existe
-        Remove-Files "$env:windir\CCM\*.tmp"
-        Remove-Files "$env:windir\CCM\Logs\*.log"       # logs em uso pelo CcmExec sao ignorados
-        Remove-Files "$env:windir\CCMSetup\*.log"
-    }
-
-    Write-Step "5b. Windows Error Reporting"
+    Write-Step "5. Windows Error Reporting"
     Fast-Delete "$env:ProgramData\Microsoft\Windows\WER\ReportQueue"
     Fast-Delete "$env:ProgramData\Microsoft\Windows\WER\ReportArchive"
     Fast-Delete "$env:ProgramData\Microsoft\Windows\WER\Temp"
